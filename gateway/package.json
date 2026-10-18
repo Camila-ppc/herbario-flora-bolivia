@@ -1,0 +1,19 @@
+{
+  "name": "herbario-gateway",
+  "version": "1.0.0",
+  "description": "API Gateway (proxy inverso) del Herbario de Flora Boliviana",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "http-proxy-middleware": "^3.0.3",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0"
+  }
+}
