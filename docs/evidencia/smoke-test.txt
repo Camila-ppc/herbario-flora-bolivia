@@ -1,0 +1,106 @@
+
+### 1. Health del gateway
+$ curl -X GET http://localhost:8080/health
+{"status":"ok","service":"gateway"}
+HTTP 200
+
+### 2. Acceso SIN token (debe dar 401)
+$ curl -X GET http://localhost:8080/api/plantas
+{"error":"Unauthorized","message":"Falta el token Bearer."}
+HTTP 401
+
+### 3. Login con credenciales incorrectas (401)
+$ curl -X POST http://localhost:8080/auth/login -d '{"username":"admin","password":"mal"}'
+{"error":"Unauthorized","message":"Credenciales inválidas."}
+HTTP 401
+
+### 4. Login correcto
+$ curl -X POST http://localhost:8080/auth/login -d '{"username":"admin","password":"herbario123"}'
+{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc5MjM0MzA0MiwiZXhwIjoxNzkyMzQ2NjQyfQ.zWpow2iDVgkAC6AdXdo_YeltI21glHndjfDyiRvSr6k","token_type":"Bearer","expires_in":"1h"}
+HTTP 200
+
+### 5. Listar familias
+$ curl -X GET http://localhost:8080/api/familias
+[{"id":5,"nombre":"Amaranthaceae","descripcion":null},{"id":2,"nombre":"Bromeliaceae","descripcion":null},{"id":3,"nombre":"Lecythidaceae","descripcion":null},{"id":4,"nombre":"Nymphaeaceae","descripcion":null},{"id":1,"nombre":"Rosaceae","descripcion":null}]
+HTTP 200
+
+### 6. Crear familia
+$ curl -X POST http://localhost:8080/api/familias -d '{"nombre":"Cactaceae","descripcion":"Familia de los cactus"}'
+{"nombre":"Cactaceae","descripcion":"Familia de los cactus","id":12}
+HTTP 201
+
+### 7. Crear familia duplicada (409)
+$ curl -X POST http://localhost:8080/api/familias -d '{"nombre":"Cactaceae"}'
+{"message":"Ya existe un registro con esos datos únicos.","error":"Conflict","statusCode":409}
+HTTP 409
+
+### 8. Crear planta
+$ curl -X POST http://localhost:8080/api/plantas -d '{"nombreCientifico":"Echinopsis tarijensis","nombreComun":"Cardón","ecorregion":"Valles secos","altitudMin":1800,"altitudMax":3200,"familiaId":12}'
+{"id":8,"nombreCientifico":"Echinopsis tarijensis","nombreComun":"Cardón","descripcion":null,"ecorregion":"Valles secos","altitudMin":1800,"altitudMax":3200,"estadoConservacion":"preocupacion_menor","familiaId":12,"familia":{"id":12,"nombre":"Cactaceae","descripcion":"Familia de los cactus"}}
+HTTP 201
+
+### 9. Crear planta con datos inválidos (400)
+$ curl -X POST http://localhost:8080/api/plantas -d '{"nombreCientifico":"","familiaId":"x"}'
+{"message":["nombreCientifico should not be empty","familiaId must be a positive number","familiaId must be an integer number"],"error":"Bad Request","statusCode":400}
+HTTP 400
+
+### 10. Buscar plantas por nombre (q=cardón)
+$ curl -X GET http://localhost:8080/api/plantas?q=card%C3%B3n
+[{"id":8,"nombreCientifico":"Echinopsis tarijensis","nombreComun":"Cardón","descripcion":null,"ecorregion":"Valles secos","altitudMin":1800,"altitudMax":3200,"estadoConservacion":"preocupacion_menor","familiaId":12,"familia":{"id":12,"nombre":"Cactaceae","descripcion":"Familia de los cactus"}}]
+HTTP 200
+
+### 11. Filtrar plantas en peligro
+$ curl -X GET http://localhost:8080/api/plantas?estado=en_peligro
+[{"id":2,"nombreCientifico":"Puya raimondii","nombreComun":"Titanka","descripcion":"Bromelia gigante que florece una sola vez al final de su vida.","ecorregion":"Puna","altitudMin":3200,"altitudMax":4800,"estadoConservacion":"en_peligro","familiaId":2,"familia":{"id":2,"nombre":"Bromeliaceae","descripcion":null}}]
+HTTP 200
+
+### 12. Obtener planta por id
+$ curl -X GET http://localhost:8080/api/plantas/8
+{"id":8,"nombreCientifico":"Echinopsis tarijensis","nombreComun":"Cardón","descripcion":null,"ecorregion":"Valles secos","altitudMin":1800,"altitudMax":3200,"estadoConservacion":"preocupacion_menor","familiaId":12,"familia":{"id":12,"nombre":"Cactaceae","descripcion":"Familia de los cactus"}}
+HTTP 200
+
+### 13. Actualizar planta (PATCH)
+$ curl -X PATCH http://localhost:8080/api/plantas/8 -d '{"estadoConservacion":"casi_amenazada"}'
+{"id":8,"nombreCientifico":"Echinopsis tarijensis","nombreComun":"Cardón","descripcion":null,"ecorregion":"Valles secos","altitudMin":1800,"altitudMax":3200,"estadoConservacion":"casi_amenazada","familiaId":12,"familia":{"id":12,"nombre":"Cactaceae","descripcion":"Familia de los cactus"}}
+HTTP 200
+
+### 14. Registrar avistamiento
+$ curl -X POST http://localhost:8080/api/avistamientos -d '{"plantaId":8,"localidad":"Tarija - Tolomosa","departamento":"Tarija","latitud":-21.5,"longitud":-64.8,"fecha":"2026-10-10","observador":"Estudiante UCB"}'
+{"id":4,"plantaId":8,"localidad":"Tarija - Tolomosa","departamento":"Tarija","latitud":-21.5,"longitud":-64.8,"fecha":"2026-10-10","observador":"Estudiante UCB","notas":null,"planta":{"id":8,"nombreCientifico":"Echinopsis tarijensis","nombreComun":"Cardón","descripcion":null,"ecorregion":"Valles secos","altitudMin":1800,"altitudMax":3200,"estadoConservacion":"casi_amenazada","familiaId":12,"familia":{"id":12,"nombre":"Cactaceae","descripcion":"Familia de los cactus"}}}
+HTTP 201
+
+### 15. Avistamientos de la planta
+$ curl -X GET http://localhost:8080/api/plantas/8/avistamientos
+[{"id":4,"plantaId":8,"localidad":"Tarija - Tolomosa","departamento":"Tarija","latitud":-21.5,"longitud":-64.8,"fecha":"2026-10-10","observador":"Estudiante UCB","notas":null}]
+HTTP 200
+
+### 16. Borrar familia con plantas (409)
+$ curl -X DELETE http://localhost:8080/api/familias/12
+{"message":"Operación inválida por relaciones: el registro referenciado no existe o aún tiene registros asociados.","error":"Conflict","statusCode":409}
+HTTP 409
+
+### 17. Borrar avistamiento (204)
+$ curl -X DELETE http://localhost:8080/api/avistamientos/4
+
+HTTP 204
+
+### 18. Borrar planta (204)
+$ curl -X DELETE http://localhost:8080/api/plantas/8
+
+HTTP 204
+
+### 19. Borrar familia (204)
+$ curl -X DELETE http://localhost:8080/api/familias/12
+
+HTTP 204
+
+### 20. Planta borrada ya no existe (404)
+$ curl -X GET http://localhost:8080/api/plantas/8
+{"message":"Planta 8 no encontrada","error":"Not Found","statusCode":404}
+HTTP 404
+
+### 21. Swagger publico (primeras lineas)
+$ curl -X GET http://localhost:8080/docs-json
+{"openapi":"3.0.0","paths":{"/api/familias":{"post":{"operationId":"FamiliasController_create","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CreateFamiliaDto"}}}},"responses":{"201":{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Familia"}}}}},"tags":["familias"]},"get":{"operationId":"FamiliasController_findAll","parameters":[],"responses":{"200":{"description":"","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/Familia"}}}}}},"tags":["familias"]}},"/api/familias/{id}":{"get":{"operationId":"FamiliasController_findOne","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"number"}}],"responses":{"200":{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Familia"}}}}},"tags":["familias"]},"patch":{"operationId":"FamiliasController_update","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"number"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UpdateFamiliaDto"}}}},"responses":{"200":{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Familia"}}}}},"tags":["familias"]},"delete":{"operationId":"FamiliasController_remove","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"number"}}],"responses":{"204":{"description":""}},"tags":["familias"]}},"/api/plantas":{"post":{"operationId":"PlantasController_create","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CreatePlantaDto"}}}},"responses":{"201":{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Planta"}}}}},"tags":["plantas"]},"get":{"operationId":"PlantasController_findAll","parameters":[{"name":"familiaId","required":false,"in":"query","schema":{"type":"number"}},{"name":"ecorregion","required":false,"in":"query","schema":{"type":"string"}},{"name":"estado","required":false,"in":"query","schema":{"enum":["preocupacion_menor","casi_amenazada","vulnerable","en_peligro","en_peligro_critico"],"type":"string"}},{"name":"q","required":false,"in":"query","schema":{"type":"string"}}],"responses":{"200":{"description":"","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/Planta"}}}}}},"tags":["plantas"]}},"/api/plantas/{id}":{"get":{"operationId":"PlantasController_findOne","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"number"}}],"responses":{"200":{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Planta"}}}}},"tags":["plantas"]},"patch":{"operationId":"PlantasController_update","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"number"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UpdatePlantaDto"}}}},"responses":{"200":{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Planta"}}}}},"tags":["plantas"]},"delete":{"operationId":"PlantasController_remove","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"number"}}],"responses":{"204":{"description":""}},"tags":["plantas"]}},"/api/plantas/{id}/avistamientos":{"get":{"operationId":"PlantasController_findAvistamientos","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"number"}}],"responses":{"200":{"description":"","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/Avistamiento"}}}}}},"tags":["plantas"]}},"/api/avistamientos":{"post":{"operationId":"AvistamientosController_create","parameters":[],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CreateAvistamientoDto"}}}},"responses":{"201":{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Avistamiento"}}}}},"tags":["avistamientos"]},"get":{"operationId":"AvistamientosController_findAll","parameters":[{"name":"plantaId","required":false,"in":"query","schema":{"type":"number"}},{"name":"departamento","required":false,"in":"query","schema":{"enum":["La Paz","Cochabamba","Santa Cruz","Oruro","Potosí","Chuquisaca","Tarija","Beni","Pando"],"type":"string"}}],"responses":{"200":{"description":"","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/Avistamiento"}}}}}},"tags":["avistamientos"]}},"/api/avistamientos/{id}":{"get":{"operationId":"AvistamientosController_findOne","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"number"}}],"responses":{"200":{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Avistamiento"}}}}},"tags":["avistamientos"]},"patch":{"operationId":"AvistamientosController_update","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"number"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{"$ref":"#/components/schemas/UpdateAvistamientoDto"}}}},"responses":{"200":{"description":"","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Avistamiento"}}}}},"tags":["avistamientos"]},"delete":{"operationId":"AvistamientosController_remove","parameters":[{"name":"id","required":true,"in":"path","schema":{"type":"number"}}],"responses":{"204":{"description":""}},"tags":["avistamientos"]}}},"info":{"title":"Herbario de Flora Boliviana - API","description":"Microservicio de plantas, familias botánicas y avistamientos","version":"1.0.0","contact":{}},"tags":[],"servers":[],"components":{"securitySchemes":{"bearer":{"scheme":"bearer","bearerFormat":"JWT","type":"http"}},"schemas":{"CreateFamiliaDto":{"type":"object","properties":{"nombre":{"type":"string","maxLength":100},"descripcion":{"type":"string"}},"required":["nombre"]},"Familia":{"type":"object","properties":{"id":{"type":"number"},"nombre":{"type":"string"},"descripcion":{"type":"string"},"plantas":{"type":"array","items":{"$ref":"#/components/schemas/Planta"}}},"required":["id","nombre"]},"Avistamiento":{"type":"object","properties":{"id":{"type":"number"},"plantaId":{"type":"number"},"planta":{"$ref":"#/components/schemas/Planta"},"localidad":{"type":"string"},"departamento":{"enum":["La Paz","Cochabamba","Santa Cruz","Oruro","Potosí","Chuquisaca","Tarija","Beni","Pando"],"type":"string"},"latitud":{"type":"number"},"longitud":{"type":"number"},"fecha":{"type":"string"},"observador":{"type":"string"},"notas":{"type":"string"}},"required":["id","plantaId","localidad","departamento","fecha","observador"]},"Planta":{"type":"object","properties":{"id":{"type":"number"},"nombreCientifico":{"type":"string"},"nombreComun":{"type":"string"},"descripcion":{"type":"string"},"ecorregion":{"type":"string"},"altitudMin":{"type":"number"},"altitudMax":{"type":"number"},"estadoConservacion":{"enum":["preocupacion_menor","casi_amenazada","vulnerable","en_peligro","en_peligro_critico"],"type":"string"},"familiaId":{"type":"number"},"familia":{"$ref":"#/components/schemas/Familia"},"avistamientos":{"type":"array","items":{"$ref":"#/components/schemas/Avistamiento"}}},"required":["id","nombreCientifico","estadoConservacion","familiaId"]},"UpdateFamiliaDto":{"type":"object","properties":{"nombre":{"type":"string","maxLength":100},"descripcion":{"type":"string"}}},"CreatePlantaDto":{"type":"object","properties":{"nombreCientifico":{"type":"string","maxLength":150},"nombreComun":{"type":"string","maxLength":150},"descripcion":{"type":"string"},"ecorregion":{"type":"string","maxLength":80},"altitudMin":{"type":"number","minimum":0},"altitudMax":{"type":"number","minimum":0},"estadoConservacion":{"type":"string","enum":["preocupacion_menor","casi_amenazada","vulnerable","en_peligro","en_peligro_critico"]},"familiaId":{"type":"number","minimum":1}},"required":["nombreCientifico","familiaId"]},"UpdatePlantaDto":{"type":"object","properties":{"nombreCientifico":{"type":"string","maxLength":150},"nombreComun":{"type":"string","maxLength":150},"descripcion":{"type":"string"},"ecorregion":{"type":"string","maxLength":80},"altitudMin":{"type":"number","minimum":0},"altitudMax":{"type":"number","minimum":0},"estadoConservacion":{"type":"string","enum":["preocupacion_menor","casi_amenazada","vulnerable","en_peligro","en_peligro_critico"]},"familiaId":{"type":"number","minimum":1}}},"CreateAvistamientoDto":{"type":"object","properties":{"plantaId":{"type":"number","minimum":1},"localidad":{"type":"string","maxLength":150},"departamento":{"type":"string","enum":["La Paz","Cochabamba","Santa Cruz","Oruro","Potosí","Chuquisaca","Tarija","Beni","Pando"]},"latitud":{"type":"number","minimum":-90,"maximum":90},"longitud":{"type":"number","minimum":-180,"maximum":180},"fecha":{"type":"string"},"observador":{"type":"string","maxLength":120},"notas":{"type":"string"}},"required":["plantaId","localidad","departamento","fecha","observador"]},"UpdateAvistamientoDto":{"type":"object","properties":{"plantaId":{"type":"number","minimum":1},"localidad":{"type":"string","maxLength":150},"departamento":{"type":"string","enum":["La Paz","Cochabamba","Santa Cruz","Oruro","Potosí","Chuquisaca","Tarija","Beni","Pando"]},"latitud":{"type":"number","minimum":-90,"maximum":90},"longitud":{"type":"number","minimum":-180,"maximum":180},"fecha":{"type":"string"},"observador":{"type":"string","maxLength":120},"notas":{"type":"string"}}}}}}
+
+Pruebas terminadas.

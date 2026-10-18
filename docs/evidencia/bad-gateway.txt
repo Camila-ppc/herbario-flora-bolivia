@@ -1,0 +1,8 @@
+# docker-compose stop microservicio   (simulado: se detiene el proceso del microservicio)
+$ curl -i http://localhost:8080/api/plantas -H "Authorization: Bearer <token>"
+HTTP/1.1 502 Bad Gateway
+{"error":"Bad Gateway","message":"El microservicio no responde."}
+
+# Log del gateway en ese momento:
+{"level":"error","requestId":"b8ea826b-21ea-45ac-8433-d989a18b1668","message":"connect ECONNREFUSED 127.0.0.1:3000"}
+{"time":"2026-10-18T17:06:37.553Z","requestId":"b8ea826b-21ea-45ac-8433-d989a18b1668","method":"GET","url":"/api/plantas","status":502,"ms":21.325,"user":"admin","ip":"127.0.0.1"}
