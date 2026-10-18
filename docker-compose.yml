@@ -1,0 +1,88 @@
+# Herbario de Flora Boliviana — API Gateway + Microservicio (NestJS) + PostgreSQL
+# Uso:  docker-compose up --build        (o: docker compose up --build)
+# Los valores ${VAR:-defecto} se pueden cambiar copiando .env.example a .env
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: herbario-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-herbario_db}
+      POSTGRES_USER: ${DB_USER:-herbario}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-herbario123}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - herbario-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  microservicio:
+    build:
+      context: ./microservicio
+    container_name: herbario-microservicio
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-herbario_db}
+      DB_USER: ${DB_USER:-herbario}
+      DB_PASSWORD: ${DB_PASSWORD:-herbario123}
+      DB_SYNC: ${DB_SYNC:-true}
+      SEED_DATA: ${SEED_DATA:-true}
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "3000"          # solo visible dentro de la red; NO se publica al host
+    networks:
+      - herbario-net
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  gateway:
+    build:
+      context: ./gateway
+    container_name: herbario-gateway
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      MICROSERVICE_URL: http://microservicio:3000
+      JWT_SECRET: ${JWT_SECRET:-cambia-este-secreto-en-produccion}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-herbario123}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      LOGIN_RATE_LIMIT_MAX: ${LOGIN_RATE_LIMIT_MAX:-10}
+    depends_on:
+      microservicio:
+        condition: service_healthy
+    ports:
+      - "8080:8080"     # ÚNICO punto de entrada para los clientes externos
+    networks:
+      - herbario-net
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  herbario-net:
+    driver: bridge
+
+volumes:
+  pgdata:
