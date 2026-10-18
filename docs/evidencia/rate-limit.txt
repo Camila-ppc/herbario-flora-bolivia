@@ -1,0 +1,20 @@
+$ for i in $(seq 1 12); do curl -s -o /dev/null -w "intento $i -> HTTP %{http_code}
+" -X POST http://localhost:8080/auth/login -H "Content-Type: application/json" -d "{\"username\":\"x\",\"password\":\"x\"}"; done
+intento 1 -> HTTP 401
+intento 2 -> HTTP 401
+intento 3 -> HTTP 401
+intento 4 -> HTTP 401
+intento 5 -> HTTP 401
+intento 6 -> HTTP 401
+intento 7 -> HTTP 401
+intento 8 -> HTTP 401
+intento 9 -> HTTP 401
+intento 10 -> HTTP 401
+intento 11 -> HTTP 429
+intento 12 -> HTTP 429
+
+$ curl -i -X POST http://localhost:8080/auth/login ...   (respuesta cuando se excede el límite)
+HTTP/1.1 429 Too Many Requests
+RateLimit-Limit: 10
+RateLimit-Remaining: 0
+{"error":"Too Many Requests","message":"Demasiados intentos de login, intenta de nuevo en un momento."}
